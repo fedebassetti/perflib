@@ -3,21 +3,26 @@
 #include <cstdint>
 #include <vector>
 
+using namespace libperf;
 
-std::vector<libperf::libperf_counter> get_counters_available(void) {
+std::vector<libperf_counter> get_counters_available(void) {
 
-    return std::vector<libperf::libperf_counter>();
+    return std::vector<libperf_counter>();
 }
 
 bool is_counter_available(libperf_counter counter) {
 
-    return true;
+    return (counter == 1);
     
 }
                                                          
 
-PerfCounter(libperf::libperf_counter counter) {}
-~PerfCounter(void) {}
+PerfCounter::PerfCounter(libperf_counter counter) :
+    counter_(counter) {
+
+}
+
+PerfCounter::~PerfCounter(void) {}
 
 inline void start_counter(void) {}
 inline void stop_counter(void) {}
