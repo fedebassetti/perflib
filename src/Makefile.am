@@ -1,6 +1,6 @@
-AM_CPPFLAGS = 
-AM_CXXFLAGS = -fPIC
+AM_CPPFLAGS = $(CXX14_FLAGS)
+AM_CXXFLAGS = $(PICKY_CXXFLAGS) -fPIC
 
 noinst_LIBRARIES = libperf.a
 
-libperf_a_SOURCES = libperf.h libperf.c
+libperf_a_SOURCES = libperf.hh libperf.cc
