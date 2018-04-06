@@ -17,6 +17,7 @@ int main(){
     }
     
     p.stop();
+    std::cerr << "LIBPERF_COUNT_HW_INSTRUCTIONS: " << p.getval() << "\n";
     
     return u;
 }
