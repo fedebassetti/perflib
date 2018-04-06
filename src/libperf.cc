@@ -1,36 +1,141 @@
 #include "libperf.hh"
 
+#include <assert.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stropts.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
+
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
-using namespace libperf;
+libperf::libperf_counter_ libperf::get_counter_by_name(std::string counter_name) {
 
-std::vector<libperf_counter> get_counters_available(void) {
-
-    return std::vector<libperf_counter>();
-}
-
-bool is_counter_available(libperf_counter counter) {
-
-    return (counter == 1);
+    libperf::libperf_counter_ counter{counter_name};
     
+    bool counter_exists = false;
+    for(size_t i = 0; i < libperf::num_available_counters_; i++) {
+        if( counter_name.compare(counters_[i].name) == 0 ){
+            counter = libperf::counters_[i];
+            counter_exists = true;
+            break;
+        }
+    }
+    
+    if(not counter_exists){
+        std::cerr << "error: " << counter_name << " does not name a defined perf counter." << std::endl;
+        throw;
+    }
+
+    return counter;
 }
-                                                         
 
-PerfCounter::PerfCounter(libperf_counter counter) :
-    counter_(counter) {
+bool libperf::is_counter_available(std::string counter_name) {
 
+    libperf::libperf_counter_ counter = libperf::get_counter_by_name(counter_name);
+    
+    counter.attributes.size = sizeof(perf_event_attr);
+    counter.attributes.inherit = 1;
+    counter.attributes.disabled = 1;
+    counter.attributes.enable_on_exec = 0;
+    
+    pid_t pid = syscall(SYS_gettid);
+    int cpu = -1;
+    
+    libperf::FDGuard fdg{syscall(__NR_perf_event_open,
+                                 &counter.attributes, pid, cpu,
+                                 -1, 0)
+    };
+    
+    if(fdg.fd < 0){
+        return false;
+    }
+    return true;
 }
 
-PerfCounter::~PerfCounter(void) {}
 
-inline void start_counter(void) {}
-inline void stop_counter(void) {}
+std::vector<std::string> libperf::get_counters_available(void) {
 
-void reset_counter(void) {}
+    std::vector<std::string> counters{};
+    for(size_t i = 0; i < libperf::num_available_counters_; i++){
+        
+        std::string name = libperf::counters_[i].name;
+        if(libperf::is_counter_available(name)) {
+            counters[i] = name;
+        }
+    }
 
-uint64_t read_counter(void) {
+    return counters;
+}
 
-    return 42;
 
+libperf::PerfCounter::PerfCounter(std::string counter_name) :
+    counter_(counter_name),
+    name_(counter_.name)
+{
+    
+    if(not libperf::is_counter_available(counter_name) ){
+        std::cerr << "error: a performance counter for " << counter_name << " could not be created." << std::endl;
+        throw;
+    }
+    
+    counter_ = libperf::get_counter_by_name(counter_name);
+    
+    counter_.attributes.size = sizeof(perf_event_attr);
+    counter_.attributes.inherit = 1;
+    counter_.attributes.disabled = 1;
+    counter_.attributes.enable_on_exec = 0;
+    
+    {
+        pid_t pid = syscall(SYS_gettid);
+        int cpu = -1;
+        
+        fd_ = syscall(__NR_perf_event_open,
+                      &counter_.attributes, pid, cpu,
+                      -1, 0);
+    }        
+}
+
+libperf::PerfCounter::~PerfCounter(void) {
+    close(fd_);
+}
+
+void libperf::PerfCounter::start(void) {
+    
+    int ret = ioctl(fd_, PERF_EVENT_IOC_ENABLE);
+    if(ret < 0){
+        std::cerr << "error: failed to start " << name_ <<" counter." << std::endl;
+        //throw;
+    }        
+}
+
+void libperf::PerfCounter::stop(void) {
+
+    int ret =  ioctl(fd_, PERF_EVENT_IOC_DISABLE);
+    if(ret < 0){
+        std::cerr << "error: failed to stop " << counter_.name << " counter." << std::endl;
+        //throw;
+    }        
+}
+
+void libperf::PerfCounter::reset(void) {}
+
+uint64_t libperf::PerfCounter::getval(void) {
+
+    uint64_t value;
+    
+    int bytes_read = read(fd_, &value, sizeof(uint64_t));
+    assert(bytes_read == sizeof(uint64_t));
+    
+    return value;
 }

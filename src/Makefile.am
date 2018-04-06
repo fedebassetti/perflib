@@ -4,3 +4,7 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS) -fPIC
 noinst_LIBRARIES = libperf.a
 
 libperf_a_SOURCES = libperf.hh libperf.cc
+
+bin_PROGRAMS = test
+test_SOURCES = main.cc
+test_LDADD = libperf.a

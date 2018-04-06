@@ -1,87 +1,130 @@
 #pragma once
 
+#include <unistd.h>
+#include <linux/perf_event.h>
+
 #include <cstdint>
+#include <cstring>
+#include <iostream>
 #include <vector>
+#include <string>
 
 namespace libperf {
-
-    enum libperf_counter {
-
-            /* sw tracepoints */
-            LIBPERF_COUNT_SW_CPU_CLOCK = 0,
-            LIBPERF_COUNT_SW_TASK_CLOCK = 1,
-            LIBPERF_COUNT_SW_CONTEXT_SWITCHES = 2,
-            LIBPERF_COUNT_SW_CPU_MIGRATIONS = 3,
-            LIBPERF_COUNT_SW_PAGE_FAULTS = 4,
-            LIBPERF_COUNT_SW_PAGE_FAULTS_MIN = 5,
-            LIBPERF_COUNT_SW_PAGE_FAULTS_MAJ = 6,
-
-            /* hw counters */
-            LIBPERF_COUNT_HW_CPU_CYCLES = 7,
-            LIBPERF_COUNT_HW_INSTRUCTIONS = 8,
-            LIBPERF_COUNT_HW_CACHE_REFERENCES = 9,
-            LIBPERF_COUNT_HW_CACHE_MISSES = 10,
-            LIBPERF_COUNT_HW_BRANCH_INSTRUCTIONS = 11,
-            LIBPERF_COUNT_HW_BRANCH_MISSES = 12,
-            LIBPERF_COUNT_HW_BUS_CYCLES = 13,
-
-            /* cache counters */
-
-            /* L1D - data cache */
-            LIBPERF_COUNT_HW_CACHE_L1D_LOADS = 14,
-            LIBPERF_COUNT_HW_CACHE_L1D_LOADS_MISSES = 15,
-            LIBPERF_COUNT_HW_CACHE_L1D_STORES = 16,
-            LIBPERF_COUNT_HW_CACHE_L1D_STORES_MISSES = 17,
-            LIBPERF_COUNT_HW_CACHE_L1D_PREFETCHES = 18,
-
-            /* L1I - instruction cache */
-            LIBPERF_COUNT_HW_CACHE_L1I_LOADS = 19,
-            LIBPERF_COUNT_HW_CACHE_L1I_LOADS_MISSES = 20,
-
-            /* LL - last level cache */
-            LIBPERF_COUNT_HW_CACHE_LL_LOADS = 21,
-            LIBPERF_COUNT_HW_CACHE_LL_LOADS_MISSES = 22,
-            LIBPERF_COUNT_HW_CACHE_LL_STORES  = 23,
-            LIBPERF_COUNT_HW_CACHE_LL_STORES_MISSES = 24,
-
-            /* DTLB - data translation lookaside buffer */
-            LIBPERF_COUNT_HW_CACHE_DTLB_LOADS = 25,
-            LIBPERF_COUNT_HW_CACHE_DTLB_LOADS_MISSES = 26,
-            LIBPERF_COUNT_HW_CACHE_DTLB_STORES = 27,
-            LIBPERF_COUNT_HW_CACHE_DTLB_STORES_MISSES = 28,
-
-            /* ITLB - instructiont translation lookaside buffer */
-            LIBPERF_COUNT_HW_CACHE_ITLB_LOADS = 29,
-            LIBPERF_COUNT_HW_CACHE_ITLB_LOADS_MISSES = 30,
-
-            /* BPU - branch prediction unit */
-            LIBPERF_COUNT_HW_CACHE_BPU_LOADS = 31,
-            LIBPERF_COUNT_HW_CACHE_BPU_LOADS_MISSES = 32,
-
-            /* Special internally defined "counter" */
-            /* this is the _only_ floating point value */
-            LIBPERF_LIB_SW_WALL_TIME = 33
-        };
     
+    class FDGuard {
+    public:
+        
+        long int fd;
+        bool set;
 
-     class PerfCounter {
-     public:
+        FDGuard(void) :
+            fd(-1),
+            set(false)
+        { }
+        
+        FDGuard(long int fd_) :
+            fd(fd_),
+            set(true)
+        { }
 
-         static std::vector<libperf::libperf_counter> get_counters_available(void);
-         static bool is_counter_available(libperf::libperf_counter counter);
+        ~FDGuard(){
+            if(set){
+                close(fd);
+            }
+        }
+    };
+        
+    typedef struct perf_event_attr perf_event_attr_;
+    
+    struct libperf_counter_ {
 
-         PerfCounter(libperf::libperf_counter counter);
-         ~PerfCounter(void);
+        std::string name;
+        perf_event_attr attributes;
 
-         inline void start_counter(void);
-         inline void stop_counter(void);
 
-         void reset_counter(void);
+        libperf_counter_(std::string _name){
+            name = _name;
+            
+            attributes = {};
+            std::memset(&attributes, 0, sizeof(perf_event_attr));            
+        }
+        
+        libperf_counter_(const char *_name,
+                        decltype(perf_event_attr_().type) _type,
+                        decltype(perf_event_attr_().config) _config) {
 
-         uint64_t read_counter(void);
+            name = std::string(_name);
 
-     private:
-         libperf_counter counter_;
-     };
+            attributes = {};
+            std::memset(&attributes, 0, sizeof(perf_event_attr));
+
+            attributes.type = _type;
+            attributes.config = _config;
+        }
+    };
+
+    typedef struct libperf_counter_ libperf_counter_;
+
+    const libperf_counter_ counters_[] = {
+        libperf_counter_("LIBPERF_COUNT_SW_CPU_CLOCK", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_CPU_CLOCK),
+        libperf_counter_("LIBPERF_COUNT_SW_TASK_CLOCK", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_TASK_CLOCK),
+        libperf_counter_("LIBPERF_COUNT_SW_CONTEXT_SWITCHES", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_CONTEXT_SWITCHES),
+        libperf_counter_("LIBPERF_COUNT_SW_CPU_MIGRATIONS", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_CPU_MIGRATIONS),
+        libperf_counter_("LIBPERF_COUNT_SW_PAGE_FAULTS", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_PAGE_FAULTS),
+        libperf_counter_("LIBPERF_COUNT_SW_PAGE_FAULTS_MIN", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_PAGE_FAULTS_MIN),
+        libperf_counter_("LIBPERF_COUNT_SW_PAGE_FAULTS_MAJ", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_PAGE_FAULTS_MAJ),
+        
+        libperf_counter_("LIBPERF_COUNT_HW_CPU_CYCLES", PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES),
+        libperf_counter_("LIBPERF_COUNT_HW_INSTRUCTIONS", PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_REFERENCES", PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_REFERENCES),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_MISSES", PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_MISSES),
+        libperf_counter_("LIBPERF_COUNT_HW_BRANCH_INSTRUCTIONS", PERF_TYPE_HARDWARE, PERF_COUNT_HW_BRANCH_INSTRUCTIONS),
+        libperf_counter_("LIBPERF_COUNT_HW_BRANCH_MISSES", PERF_TYPE_HARDWARE, PERF_COUNT_HW_BRANCH_MISSES),
+        libperf_counter_("LIBPERF_COUNT_HW_BUS_CYCLES", PERF_TYPE_HARDWARE, PERF_COUNT_HW_BUS_CYCLES),
+        
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_L1D_LOADS", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_L1D_LOADS_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_L1D_STORES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_L1D_STORES_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_L1D_PREFETCHES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_L1I_LOADS", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_L1I | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_L1I_LOADS_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_L1I | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_LL_LOADS", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_LL | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_LL_LOADS_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_LL | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_LL_STORES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_LL | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_LL_STORES_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_LL | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_DTLB_LOADS", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_DTLB | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_DTLB_LOADS_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_DTLB | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_DTLB_STORES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_DTLB | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_DTLB_STORES_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_DTLB | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_ITLB_LOADS", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_ITLB | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_ITLB_LOADS_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_ITLB | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_BPU_LOADS", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_BPU | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16))),
+        libperf_counter_("LIBPERF_COUNT_HW_CACHE_BPU_LOADS_MISSES", PERF_TYPE_HW_CACHE, (PERF_COUNT_HW_CACHE_BPU | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16))),
+    };
+    
+    const size_t num_available_counters_ = sizeof(counters_) / sizeof(libperf_counter_);
+
+    libperf_counter_ get_counter_by_name(std::string counter_name);
+    bool is_counter_available(std::string counter_name);
+    std::vector<std::string> get_counters_available(void);
+    
+    class PerfCounter {
+    public:
+        
+        PerfCounter(std::string counter_name);
+        ~PerfCounter(void);
+        
+        void start(void);
+        void stop(void);
+        void reset(void);
+        uint64_t getval(void);
+        
+    private:
+        libperf_counter_ counter_;
+        const std::string &name_;
+        int fd_;
+        
+    };
 
 }
