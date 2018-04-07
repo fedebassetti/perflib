@@ -7,9 +7,16 @@
 ```bash
 sudo apt-get install build-essential
 sudo apt-get install linux-tools-generic perf
+
 ```
 
-## Installation
+## Installation from pip
+
+```bash
+pip install perflib
+```
+
+## Installation from source
 
 ```bash
 ./autogen.sh
