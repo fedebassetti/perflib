@@ -18,6 +18,9 @@
 #include <cstdint>
 #include <vector>
 #include <iostream>
+#include <stdexcept>
+
+const char* libperf::version_ = "0.1";
 
 libperf::libperf_counter_ libperf::get_counter_by_name(std::string counter_name) {
 
@@ -33,8 +36,7 @@ libperf::libperf_counter_ libperf::get_counter_by_name(std::string counter_name)
     }
     
     if(not counter_exists){
-        std::cerr << "error: " << counter_name << " does not name a defined perf counter." << std::endl;
-        throw;
+        throw std::runtime_error(counter_name + " does not name a defined perf counter.");
     }
 
     return counter;
@@ -85,8 +87,7 @@ libperf::PerfCounter::PerfCounter(std::string counter_name) :
 {
     
     if(not libperf::is_counter_available(counter_name) ){
-        std::cerr << "error: a performance counter for " << counter_name << " could not be created." << std::endl;
-        throw;
+        throw std::runtime_error("A performance counter for " + counter_name + " could not be created.");
     }
     
     counter_ = libperf::get_counter_by_name(counter_name);
@@ -114,8 +115,7 @@ void libperf::PerfCounter::start(void) {
     
     int ret = ioctl(fd_, PERF_EVENT_IOC_ENABLE);
     if(ret < 0){
-        std::cerr << "error: failed to start " << name_ <<" counter." << std::endl;
-        //throw;
+        throw std::runtime_error("Failed to start " + name_ + " counter.");
     }        
 }
 
@@ -123,8 +123,7 @@ void libperf::PerfCounter::stop(void) {
 
     int ret =  ioctl(fd_, PERF_EVENT_IOC_DISABLE);
     if(ret < 0){
-        std::cerr << "error: failed to stop " << counter_.name << " counter." << std::endl;
-        //throw;
+        throw std::runtime_error("Failed to stop " + counter_.name + " counter.");
     }        
 }
 

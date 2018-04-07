@@ -10,6 +10,8 @@
 #include <string>
 
 namespace libperf {
+
+    extern const char* version_;
     
     class FDGuard {
     public:
@@ -46,6 +48,7 @@ namespace libperf {
             name = _name;
             
             attributes = {};
+
             std::memset(&attributes, 0, sizeof(perf_event_attr));            
         }
         
@@ -111,8 +114,9 @@ namespace libperf {
     
     class PerfCounter {
     public:
-        
+
         PerfCounter(std::string counter_name);
+        PerfCounter() = delete;
         ~PerfCounter(void);
         
         void start(void);
@@ -126,5 +130,5 @@ namespace libperf {
         int fd_;
         
     };
-
+    
 }

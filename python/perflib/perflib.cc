@@ -5,9 +5,9 @@
 extern "C" {
 
     typedef struct {
-        PyObject_HEAD
 
-        libperf::PerfCounter counter;
+        PyObject_HEAD
+        libperf::PerfCounter *counter;
 
     } PerfCounter;
 
@@ -17,31 +17,131 @@ extern "C" {
         PerfCounter *self;
 
         self = (PerfCounter*)type->tp_alloc(type, 0);
-        if(self != NULL) {
-            PyErr_SetString(PyExc_ValueError, "could not initialize PerfCounter.");
-            Py_RETURN_NONE;            
+        if(self == NULL) {
+            PyErr_SetString(PyExc_ValueError, "Could not alloc a new PerfCounter.");
+            return 0;
         }
 
-        return (PyObject *)self;
+        return (PyObject*) self;
     }
 
     static void
     PerfCounter_dealloc(PerfCounter* self) {
 
+        delete self->counter;
         Py_TYPE(self)->tp_free((PyObject*)self);
     }
     
     static int
-    PerfCounter_init(PerfCounter *, PyObject *, PyObject *) {
+    PerfCounter_init(PerfCounter *self, PyObject *args, PyObject *kwargs) {
 
+        char *counter_name = NULL;
+
+        static char *kwlist[] = { "counter_name", NULL };
+        if (!PyArg_ParseTupleAndKeywords(args,
+                                         kwargs,
+                                         "s",
+                                         kwlist,
+                                         &counter_name)){
+
+            PyErr_SetString(PyExc_ValueError, "PerfCounter failed while parsing constructor args/kwargs.");
+            return 0;
+        }
+
+        if(counter_name == NULL) {
+
+            PyErr_SetString(PyExc_ValueError, "PerfCounter requires `counter_name` to be specified.");
+            return 0;
+        }
+
+        // std::cerr << "got it: '" << counter_name << "'\n";
+        try {
+
+            libperf::PerfCounter *p = new libperf::PerfCounter{std::string(counter_name)};
+            self->counter = p;
+        }
+        catch(const std::exception& e) {
+
+            PyErr_SetString(PyExc_ValueError, e.what());
+            return 0;
+        }
+        
         return 0;
     }
 
+    static PyObject*
+    PerfCounter_start(PerfCounter *self){
+
+        try {
+            self->counter->start();
+        }
+        catch(const std::exception& e) {
+            PyErr_SetString(PyExc_ValueError, e.what());
+            return 0;
+        }        
+
+        Py_RETURN_NONE;
+    }
+
+    static PyObject*
+    PerfCounter_stop(PerfCounter *self){
+
+        try {
+            self->counter->stop();
+        }
+        catch(const std::exception& e) {
+            PyErr_SetString(PyExc_ValueError, e.what());
+            return 0;
+        }
+
+        Py_RETURN_NONE;
+    }
+
+    static PyObject*
+    PerfCounter_reset(PerfCounter *self){
+
+        try {
+            self->counter->reset();       
+        }
+        catch(const std::exception& e) {
+            PyErr_SetString(PyExc_ValueError, e.what());
+            return 0;
+        }
+
+        Py_RETURN_NONE;
+    }
+
+    static PyObject*
+    PerfCounter_getval(PerfCounter *self){
+
+        uint64_t counter_val;
+        try {
+            counter_val = self->counter->getval();
+        }
+        catch(const std::exception& e) {
+            PyErr_SetString(PyExc_ValueError, e.what());
+            return 0;
+        }
+
+        static_assert(sizeof(uint64_t) <= sizeof(unsigned long long), "sizeof(uint64_t) <= sizeof(long long) must be true");
+        PyObject *val = PyLong_FromUnsignedLongLong(static_cast<unsigned long long>(counter_val));
+        
+        return val;
+    }
 
     static PyMethodDef PerfCounter_methods[] = {
-        // {"label_frame", (PyCFunction)YOLO_label_frame, METH_VARARGS,
-        //       "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
-        // },
+        {"start", (PyCFunction)PerfCounter_start, METH_VARARGS,
+              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+        },
+        {"stop", (PyCFunction)PerfCounter_stop, METH_VARARGS,
+              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+        },
+        {"reset", (PyCFunction)PerfCounter_reset, METH_VARARGS,
+              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+        },
+        {"getval", (PyCFunction)PerfCounter_getval, METH_VARARGS,
+              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+        },
         {NULL, NULL, METH_VARARGS, ""}  /* Sentinel */
     };
     
@@ -102,34 +202,42 @@ extern "C" {
 
     static struct PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
-        "perflib",
-        NULL,
-        sizeof(struct module_state),
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+        .m_name = "perflib",
+        .m_doc = "a python library for accessing CPU performance counters on linux.",
+        .m_size = sizeof(struct module_state),
+        .m_methods = 0,
+        .m_slots = 0,
+        .m_traverse = 0,
+        .m_clear = 0,
+        .m_free = 0
     };
-
+    
     PyMODINIT_FUNC
-    initperflib(void)
+    PyInit_perflib(void)
     {
 
         if (PyType_Ready(&PerfCounterType) < 0){
             PyErr_SetString(PyExc_ValueError, "could not intialize PerfCounter object.");
-            Py_RETURN_NONE;
+            return 0;
         }
 
         PyObject* module = PyModule_Create(&module_def);
 
         if (module == NULL){
             PyErr_SetString(PyExc_ValueError, "could not create perlib module.");
-            Py_RETURN_NONE;        
+            return 0;
         }
 
         Py_INCREF(&PerfCounterType);
         PyModule_AddObject(module, "PerfCounter", (PyObject *)&PerfCounterType);
+
+        PyObject *module_namespace = PyModule_GetDict(module);
+        PyObject *version = PyUnicode_FromString(libperf::version_);
+
+        if(PyDict_SetItemString(module_namespace, "__version__", version)){
+            PyErr_SetString(PyExc_ValueError, "could not set __version__ of perflib module.");
+            return 0;
+        }
 
         return module;
     }
