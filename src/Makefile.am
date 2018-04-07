@@ -5,6 +5,6 @@ noinst_LIBRARIES = libperf.a
 
 libperf_a_SOURCES = libperf.hh libperf.cc exception.hh
 
-bin_PROGRAMS = test
+noinst_PROGRAMS = test
 test_SOURCES = main.cc
 test_LDADD = libperf.a

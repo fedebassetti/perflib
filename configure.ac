@@ -32,6 +32,7 @@ AC_SUBST([LIBPERF_API_VERSION],[1.0])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+                 python/Makefile
 ])
 
 AC_OUTPUT
