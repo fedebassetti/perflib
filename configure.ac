@@ -5,7 +5,7 @@ AC_PREREQ([2.68])
 AC_INIT([libperf], [0.1], [jemmons@cs.stanford.edu])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/libperf.hh])
-AC_CONFIG_HEADERS([src/config.hh])
+AC_CONFIG_HEADERS([src/config.h])
 
 CXX14_FLAGS="-std=c++14"
 PICKY_CXXFLAGS="-pedantic -Wall -Wextra -Werror -Wno-non-virtual-dtor"
