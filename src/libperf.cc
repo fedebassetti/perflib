@@ -49,7 +49,7 @@ libperf::libperf_counter_ libperf::get_counter_by_name(std::string counter_name)
     }
     
     if(not counter_exists){
-        throw std::runtime_error(counter_name + " does not name a defined perf counter.");
+        throw std::runtime_error("'" + counter_name + "' does not name a defined perf counter.");
     }
 
     return counter;
@@ -93,7 +93,7 @@ libperf::PerfCounter::PerfCounter(std::string counter_name) :
 {
     
     if(not libperf::is_counter_available(counter_name) ){
-        throw std::runtime_error("A performance counter for " + counter_name + " could not be created.");
+        throw std::runtime_error("'" + counter_name + "' is not available on your system!");
     }
     
     counter_ = libperf::get_counter_by_name(counter_name);

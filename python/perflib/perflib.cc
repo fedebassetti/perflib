@@ -62,7 +62,9 @@ extern "C" {
         }
         catch(const std::exception& e) {
 
-            PyErr_SetString(PyExc_ValueError, e.what());
+            std::string error_message = std::string(e.what());
+            error_message += std::string(" Try running `perflib.get_available_counters()` to list the available counters on your system.");
+            PyErr_SetString(PyExc_ValueError, error_message.c_str());
             return 0;
         }
         
@@ -131,16 +133,16 @@ extern "C" {
 
     static PyMethodDef PerfCounter_methods[] = {
         {"start", (PyCFunction)PerfCounter_start, METH_VARARGS,
-              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+              "Starts the counter."
         },
         {"stop", (PyCFunction)PerfCounter_stop, METH_VARARGS,
-              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+              "Stops the counter."
         },
         {"reset", (PyCFunction)PerfCounter_reset, METH_VARARGS,
-              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+              "Resets the counter that the subsequent call to `start` will begin at zero."
         },
         {"getval", (PyCFunction)PerfCounter_getval, METH_VARARGS,
-              "Returns labels for objects in the frame by pushing the frame through the YOLO CNN."
+              "Returns current value of the counter."
         },
         {NULL, NULL, METH_VARARGS, ""}  /* Sentinel */
     };
@@ -213,6 +215,11 @@ extern "C" {
             return 0;
         }
 
+        if(num_counters == 0){
+            PyErr_SetString(PyExc_ValueError, "Your system does not expose any performance counters to userspace programs! If you're on Ubuntu, try:\n\n    sudo apt-get install linux-tools-generic\n");
+            return 0;            
+        }
+        
         static_assert(sizeof(Py_ssize_t) >= sizeof(size_t), "sizeof(Py_ssize_t) >= sizeof(size_t) must be true.");
         PyObject* available_counters_list = PyList_New(static_cast<Py_ssize_t>(num_counters));
         if(available_counters_list == NULL){
@@ -230,7 +237,7 @@ extern "C" {
             PyList_SET_ITEM(available_counters_list, i, counter_name);
 
         }
-        
+
         return available_counters_list;
     }
     
