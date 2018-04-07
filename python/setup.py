@@ -3,11 +3,9 @@ import sys
 
 from setuptools import setup, find_packages, Extension
 
-# this_file = os.path.dirname(__file__)
-
 module = Extension('perflib',
                    sources=['perflib/perflib.cc'],
-                       define_macros=[('MAJOR_VERSION', '0'),('MINOR_VERSION', '1')],
+                       define_macros=[],
                        include_dirs=['../src/'],
                        library_dirs=['../src/'],
                        libraries=[],
