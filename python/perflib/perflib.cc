@@ -200,12 +200,51 @@ extern "C" {
         PyObject *error;
     };
 
+    static PyObject* perflib_get_available_counters(void) {
+
+        std::vector<std::string> available_counters;
+        size_t num_counters;
+        try {
+            available_counters = libperf::get_counters_available();
+            num_counters = available_counters.size();
+        }
+        catch(const std::exception& e) {
+            PyErr_SetString(PyExc_ValueError, e.what());
+            return 0;
+        }
+
+        static_assert(sizeof(Py_ssize_t) >= sizeof(size_t), "sizeof(Py_ssize_t) >= sizeof(size_t) must be true.");
+        PyObject* available_counters_list = PyList_New(static_cast<Py_ssize_t>(num_counters));
+        if(available_counters_list == NULL){
+            PyErr_SetString(PyExc_ValueError, "could not create a new python list to put the available counters into.");
+            return 0;
+        }
+
+        for(size_t i = 0; i < num_counters; i++) {
+
+            PyObject* counter_name = PyUnicode_FromString(available_counters[i].c_str());
+            if(counter_name == NULL){
+                PyErr_SetString(PyExc_ValueError, "could not insert counter_name string into python list.");
+                return 0;
+            }
+            PyList_SET_ITEM(available_counters_list, i, counter_name);
+
+        }
+        
+        return available_counters_list;
+    }
+    
+    static PyMethodDef module_methods[] = {
+        { "get_available_counters", (PyCFunction)perflib_get_available_counters, METH_NOARGS, NULL },
+        {NULL, NULL, 0, NULL}  /* Sentinel */
+    };
+    
     static struct PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
         .m_name = "perflib",
         .m_doc = "a python library for accessing CPU performance counters on linux.",
         .m_size = sizeof(struct module_state),
-        .m_methods = 0,
+        .m_methods = module_methods,
         .m_slots = 0,
         .m_traverse = 0,
         .m_clear = 0,

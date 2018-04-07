@@ -108,6 +108,7 @@ namespace libperf {
     
     const size_t num_available_counters_ = sizeof(counters_) / sizeof(libperf_counter_);
 
+    int open_counter(libperf_counter_ &counter);
     libperf_counter_ get_counter_by_name(std::string counter_name);
     bool is_counter_available(std::string counter_name);
     std::vector<std::string> get_counters_available(void);
@@ -125,6 +126,7 @@ namespace libperf {
         uint64_t getval(void);
         
     private:
+
         libperf_counter_ counter_;
         const std::string &name_;
         int fd_;
