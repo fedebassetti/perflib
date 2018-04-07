@@ -15,7 +15,7 @@ module = Extension('perflib',
 
 setup(
     name='perflib',
-    version='0.2',
+    version='0.3',
     description='',
     long_description='',
     url='',

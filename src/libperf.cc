@@ -1,26 +1,16 @@
 #include "libperf.hh"
 
-#include <assert.h>
 #include <fcntl.h>
-#include <inttypes.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stropts.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <time.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 
 #include <cstdint>
-#include <vector>
-#include <iostream>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
-const char* libperf::version_ = "0.2";
+const char* libperf::version_ = "0.3";
 
 int libperf::open_counter(libperf_counter_ &counter) {
 
@@ -151,7 +141,9 @@ uint64_t libperf::PerfCounter::getval(void) {
     uint64_t value;
     
     int bytes_read = read(fd_, &value, sizeof(uint64_t));
-    assert(bytes_read == sizeof(uint64_t));
+    if(bytes_read != sizeof(uint64_t)){
+        throw std::runtime_error("Failed to read the value of " + counter_.name + " counter. (retval of `read` call was " + std::to_string(bytes_read) + ")");
+    }            
     
     return value;
 }
