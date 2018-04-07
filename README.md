@@ -1,4 +1,6 @@
-# perflib: a python library for accessing CPU performance counters on linux.
+# perflib
+
+**Description**: a python library for accessing CPU performance counters on linux.
 
 ## Prerequisites
 
@@ -15,7 +17,6 @@ sudo apt-get install build-essential
 make -j
 make install
 ```
-
 
 ## Example
 
@@ -44,10 +45,41 @@ p.reset() # do this to *zero* out the counter for a fresh start
 p.start()
 # do computation here...
 p.stop()
+```
 
+## Calibration
+
+```python
+import perflib
+import numpy as np
+
+p = perflib.PerfCounter(counter_name='LIBPERF_COUNT_HW_INSTRUCTIONS')
+
+N = 10000
+for _ in range(N):
+    p.start()
+    p.stop()
+    vals.append(p.getval())
+    p.reset()
+
+vals = np.asarray(vals)
+
+print('min', np.min(vals))
+print('max', np.max(vals))
+print('median', np.median(vals))
+print('mean', np.mean(vals))
+print('stdev', np.std(vals))
+
+# prints ...
+# min 1899
+# max 19398
+# median 1965
+# mean 1983.2009
+# stdev 269.0817
 ```
 
 ## Available counters
+
 ```bash
 python
 >>> import perflib
