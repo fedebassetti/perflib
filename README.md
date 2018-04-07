@@ -6,6 +6,7 @@
 
 ```bash
 sudo apt-get install build-essential
+sudo apt-get install linux-tools-generic perf
 ```
 
 ## Installation
