@@ -4,13 +4,13 @@ import sys
 from setuptools import setup, find_packages, Extension
 
 module = Extension('perflib',
-                   sources=['perflib/perflib.cc'],
-                       define_macros=[],
-                       include_dirs=['../src/'],
-                       library_dirs=['../src/'],
-                       libraries=[],
-                       extra_compile_args=['-std=c++14', '-Wall', '-Wextra'],
-                       extra_link_args=['-lperf']
+                   sources=['perflib/perflib.cc', 'perflib/libperf.cc', 'perflib/libperf.hh'],
+                   define_macros=[],
+                   include_dirs=[],
+                   library_dirs=[],
+                   libraries=[],
+                   extra_compile_args=['-std=c++14', '-Wall', '-Wextra'],
+                   extra_link_args=[]
                    )
 
 setup(
