@@ -26,14 +26,23 @@ print(perflib.__name__)
 print(perflib.__doc__)
 print(perflib.__version__)
 
+# print the available performance counters
+print(perflib.get_available_counters())
+
+# create a new performance counter object
+# will record the performance for *this* process across all CPUs
 p = perflib.PerfCounter(counter_name='LIBPERF_COUNT_HW_INSTRUCTIONS')
+
 p.start()
-
-# do computation here
-
+# do computation here...
 p.stop()
 
 print('The number of instructions that were executed:', p.getval())
 
-p.reset() # 
+p.reset() # do this to *zero* out the counter for a fresh start
+
+p.start()
+# do computation here...
+p.stop()
+
 ```
