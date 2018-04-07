@@ -20,7 +20,7 @@
 #include <iostream>
 #include <stdexcept>
 
-const char* libperf::version_ = "0.1";
+const char* libperf::version_ = "0.2";
 
 int libperf::open_counter(libperf_counter_ &counter) {
 

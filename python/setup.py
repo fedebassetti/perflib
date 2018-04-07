@@ -4,9 +4,9 @@ import sys
 from setuptools import setup, find_packages, Extension
 
 module = Extension('perflib',
-                   sources=['perflib/perflib.cc', 'perflib/libperf.cc', 'perflib/libperf.hh'],
+                   sources=['perflib/perflib.cc', 'perflib/libperf.cc'],
                    define_macros=[],
-                   include_dirs=[],
+                   include_dirs=['perflib'],
                    library_dirs=[],
                    libraries=[],
                    extra_compile_args=['-std=c++14', '-Wall', '-Wextra'],
@@ -15,7 +15,7 @@ module = Extension('perflib',
 
 setup(
     name='perflib',
-    version='0.1',
+    version='0.2',
     description='',
     long_description='',
     url='',
